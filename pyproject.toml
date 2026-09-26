@@ -1,0 +1,18 @@
+[project]
+name = "leitor-de-tela"
+version = "0.1.0"
+description = "Atalho de teclado -> print da janela -> OCR (OpenAI) -> leitura em voz alta (edge-tts)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "edge-tts",
+    "mss",
+    "openai",
+    "pynput",
+    "python-dotenv",
+    "pyobjc-framework-cocoa; sys_platform == 'darwin'",
+    "pyobjc-framework-quartz; sys_platform == 'darwin'",
+]
+
+[tool.uv]
+package = false

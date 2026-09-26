@@ -1,28 +1,18 @@
 #!/bin/bash
-# Abre o leitor de tela no macOS. Na primeira vez cria o ambiente e pede a chave da OpenAI.
+# Abre o leitor de tela no macOS. Na primeira vez instala o uv (que baixa o Python e as
+# dependências sozinho) e pede a chave da OpenAI.
 cd "$(dirname "$0")" || exit 1
 
-if [ ! -d .venv ]; then
-    PY=""
-    for candidate in python3.13 python3.12 python3.11 python3.10 python3; do
-        if command -v "$candidate" >/dev/null 2>&1 &&
-            "$candidate" -c 'import sys; sys.exit(sys.version_info < (3, 10))' 2>/dev/null; then
-            PY="$candidate"
-            break
-        fi
-    done
-    if [ -z "$PY" ]; then
-        echo "Precisa do Python 3.10 ou mais novo. Instale pelo site python.org e abra de novo."
-        read -r -p "Enter para fechar."
-        exit 1
-    fi
-    echo "Primeira execução: instalando dependências (leva um minuto)..."
-    "$PY" -m venv .venv && .venv/bin/pip install -q -r requirements.txt || {
-        rm -rf .venv
-        echo "Falhou a instalação."
-        read -r -p "Enter para fechar."
-        exit 1
-    }
+fail() {
+    echo "$1"
+    read -r -p "Enter para fechar."
+    exit 1
+}
+
+UV="$(command -v uv || echo "$HOME/.local/bin/uv")"
+if [ ! -x "$UV" ]; then
+    echo "Primeira execução: instalando o uv..."
+    curl -LsSf https://astral.sh/uv/install.sh | sh || fail "Falhou a instalação do uv. Confira a internet e tente de novo."
 fi
 
 if [ ! -f .env ]; then
@@ -32,5 +22,8 @@ if [ ! -f .env ]; then
     chmod 600 .env
 fi
 
+echo "Preparando (na primeira vez baixa o Python e as dependências, leva uns minutos)..."
+"$UV" sync --locked --quiet || fail "Falhou a instalação das dependências."
+
 echo "Rodando. Ctrl+Option+R lê a janela em foco, Ctrl+Option+Q encerra."
-.venv/bin/python screen_reader.py
+"$UV" run --locked screen_reader.py
