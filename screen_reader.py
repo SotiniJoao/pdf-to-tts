@@ -3,9 +3,14 @@
 Uso:
     python screen_reader.py
 
-Atalhos (configuráveis no .env):
-    Ctrl+Alt+R  captura a janela em foco e lê o texto em voz alta
+Atalhos (configuráveis no .env; no Mac, Alt = Option):
+    Ctrl+Alt+R  captura a janela em foco, salva e lê o texto em voz alta
+    Ctrl+Alt+P  pausa / continua a narração
+    Ctrl+Alt+S  para a narração
+    Ctrl+Alt+L  repete a última narração
     Ctrl+Alt+Q  encerra
+
+Cada leitura fica salva numerada na pasta de narrações: 1.txt + 1.mp3, 2.txt + 2.mp3, ...
 """
 
 import os
@@ -27,9 +32,17 @@ import ocr  # noqa: E402
 import tts  # noqa: E402
 
 READ_HOTKEY = os.getenv("READ_HOTKEY", "<ctrl>+<alt>+r")
+PAUSE_HOTKEY = os.getenv("PAUSE_HOTKEY", "<ctrl>+<alt>+p")
+STOP_HOTKEY = os.getenv("STOP_HOTKEY", "<ctrl>+<alt>+s")
+REPLAY_HOTKEY = os.getenv("REPLAY_HOTKEY", "<ctrl>+<alt>+l")
 QUIT_HOTKEY = os.getenv("QUIT_HOTKEY", "<ctrl>+<alt>+q")
 
+# Pasta relativa ao projeto, não à pasta de onde foi aberto.
+OUTPUT_DIR = APP_DIR / os.getenv("OUTPUT_DIR", "narracoes")
+AUTO_PLAY = os.getenv("AUTO_PLAY", "true").lower() not in ("0", "false", "nao", "não", "no")
+
 _busy = threading.Lock()
+player = tts.Player()
 
 
 def _describe_hotkey(hotkey: str) -> str:
@@ -50,6 +63,26 @@ def _save_debug_text(text: str) -> Path:
     return path
 
 
+def _numbered_outputs() -> list[Path]:
+    return sorted(
+        (p for p in OUTPUT_DIR.glob("*.mp3") if p.stem.isdigit()),
+        key=lambda p: int(p.stem),
+    )
+
+
+def _save_output(text: str) -> Path:
+    """Salva N.txt e N.mp3 com o próximo número livre e devolve o caminho do mp3."""
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    existing = _numbered_outputs()
+    n = int(existing[-1].stem) + 1 if existing else 1
+    (OUTPUT_DIR / f"{n}.txt").write_text(text, encoding="utf-8")
+    mp3 = OUTPUT_DIR / f"{n}.mp3"
+    partial = OUTPUT_DIR / f"{n}.mp3.part"  # não deixa mp3 pela metade se a síntese falhar
+    tts.synthesize(text, str(partial))
+    partial.replace(mp3)
+    return mp3
+
+
 def read_screen() -> None:
     if not _busy.acquire(blocking=False):
         print("Ainda processando a leitura anterior, ignorando.")
@@ -65,9 +98,12 @@ def read_screen() -> None:
         print(f"--- Texto extraído ---\n{text}\n----------------------")
         if DEBUG_TEXTS_DIR:
             print(f"Texto salvo em: {_save_debug_text(text).resolve()}")
-        print("Falando...")
-        tts.speak(text)
-        print("Pronto. Aguardando o atalho.")
+        print("Gerando a narração...")
+        mp3 = _save_output(text)
+        print(f"Salvo: {mp3.stem}.txt e {mp3.name} em {OUTPUT_DIR}")
+        if AUTO_PLAY:
+            player.play(str(mp3))
+            print(f"Narrando {mp3.name}. {_describe_hotkey(PAUSE_HOTKEY)} pausa, {_describe_hotkey(STOP_HOTKEY)} para.")
     except Exception as e:
         print(f"Erro: {type(e).__name__}: {e}")
     finally:
@@ -109,15 +145,50 @@ def main() -> None:
         # Roda fora da thread do listener para não travar o teclado.
         threading.Thread(target=read_screen, daemon=True).start()
 
+    def on_pause() -> None:
+        if not player.playing:
+            print("Nada tocando.")
+            return
+        player.toggle_pause()
+        print("Pausado." if player.paused else "Continuando.")
+
+    def on_stop() -> None:
+        if player.playing:
+            player.stop()
+            print("Narração parada.")
+
+    def on_replay() -> None:
+        outputs = _numbered_outputs()
+        if not outputs:
+            print("Nenhuma narração salva ainda.")
+            return
+        player.play(str(outputs[-1]))
+        print(f"Repetindo {outputs[-1].name}.")
+
     def on_quit() -> None:
         print("Encerrando.")
+        player.stop()
         listener.stop()
 
     if sys.platform == "darwin":
         check_macos_permissions()
 
-    listener = keyboard.GlobalHotKeys({READ_HOTKEY: on_read, QUIT_HOTKEY: on_quit})
-    print(f"Pronto. {_describe_hotkey(READ_HOTKEY)} lê a janela em foco, {_describe_hotkey(QUIT_HOTKEY)} encerra.")
+    listener = keyboard.GlobalHotKeys(
+        {
+            READ_HOTKEY: on_read,
+            PAUSE_HOTKEY: on_pause,
+            STOP_HOTKEY: on_stop,
+            REPLAY_HOTKEY: on_replay,
+            QUIT_HOTKEY: on_quit,
+        }
+    )
+    print("Pronto. Atalhos:")
+    print(f"  {_describe_hotkey(READ_HOTKEY):18} lê a janela em foco")
+    print(f"  {_describe_hotkey(PAUSE_HOTKEY):18} pausa / continua")
+    print(f"  {_describe_hotkey(STOP_HOTKEY):18} para")
+    print(f"  {_describe_hotkey(REPLAY_HOTKEY):18} repete a última")
+    print(f"  {_describe_hotkey(QUIT_HOTKEY):18} encerra")
+    print(f"Narrações salvas em: {OUTPUT_DIR}" + ("" if AUTO_PLAY else " (narração automática desligada)"))
     listener.start()
     listener.join()
 

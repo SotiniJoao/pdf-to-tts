@@ -25,7 +25,18 @@ No Mac:
 
    Depois de liberar, feche o Terminal e abra o `Iniciar.command` de novo.
 
-Uso: deixe o app em primeiro plano e aperte **Control+Option+R**. **Control+Option+Q** encerra.
+Uso: deixe o app em primeiro plano e aperte **Control+Option+R**.
+
+| Atalho (Mac) | Atalho (Windows) | O que faz |
+|---|---|---|
+| Control+Option+R | Ctrl+Alt+R | Lê a janela em foco, salva e narra |
+| Control+Option+P | Ctrl+Alt+P | Pausa / continua a narração |
+| Control+Option+S | Ctrl+Alt+S | Para a narração |
+| Control+Option+L | Ctrl+Alt+L | Repete a última narração |
+| Control+Option+Q | Ctrl+Alt+Q | Encerra |
+
+Cada leitura fica salva na pasta `narracoes`, numerada: `1.txt` (texto extraído) e `1.mp3` (áudio), depois `2.txt` e `2.mp3`, e assim por diante.
+Para ouvir uma antiga, é só dar dois cliques no mp3. Para recomeçar do 1, apague os arquivos da pasta.
 O Terminal mostra cada etapa (captura, texto extraído, fala) e os erros. Se faltar permissão, avisa ao abrir e abre a tela certa dos Ajustes.
 
 Atualizar: descompacte o zip novo, abra a pasta nova, selecione tudo (Cmd+A), arraste para dentro da pasta antiga e escolha **Substituir**.
@@ -38,8 +49,8 @@ copy .env.example .env   # e coloque a OPENAI_API_KEY
 uv run screen_reader.py
 ```
 
-Atalhos: **Ctrl+Alt+R** lê a janela em foco, **Ctrl+Alt+Q** encerra.
+Atalhos: veja a tabela acima (Ctrl+Alt no lugar de Control+Option).
 
 ## Configuração
 
-Tudo opcional, no `.env` (veja `.env.example`): modelo do OCR, voz, velocidade, atalhos, modo de captura (`window` ou `monitor`) e pastas de debug para salvar os prints e textos extraídos.
+Tudo opcional, no `.env` (veja `.env.example`): modelo do OCR, voz (padrão: espanhol, `es-ES-ElviraNeural`), velocidade, atalhos, pasta das narrações, narração automática, modo de captura (`window` ou `monitor`) e pastas de debug para salvar os prints e textos extraídos.
