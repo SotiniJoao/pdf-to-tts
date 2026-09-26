@@ -46,12 +46,18 @@ def _foreground_window_region_macos() -> dict | None:
         Quartz.kCGWindowListOptionOnScreenOnly | Quartz.kCGWindowListExcludeDesktopElements,
         Quartz.kCGNullWindowID,
     )
-    # A lista vem da frente para trás; layer 0 = janelas normais (sem menu bar, dock etc.).
+    # Layer 0 = janelas normais (sem menu bar, dock etc.). Muitos apps têm janelas auxiliares na
+    # frente da principal (barra de ferramentas/abas, principalmente em tela cheia), então a primeira
+    # da lista pode ser só uma faixa do topo: pega a maior janela visível do app.
+    best = None
     for w in windows:
-        if w.get("kCGWindowOwnerPID") == pid and w.get("kCGWindowLayer") == 0:
-            b = w["kCGWindowBounds"]
-            return {"left": int(b["X"]), "top": int(b["Y"]), "width": int(b["Width"]), "height": int(b["Height"])}
-    return None
+        if w.get("kCGWindowOwnerPID") != pid or w.get("kCGWindowLayer") != 0 or w.get("kCGWindowAlpha", 1) == 0:
+            continue
+        b = w["kCGWindowBounds"]
+        region = {"left": int(b["X"]), "top": int(b["Y"]), "width": int(b["Width"]), "height": int(b["Height"])}
+        if best is None or region["width"] * region["height"] > best["width"] * best["height"]:
+            best = region
+    return best
 
 
 def _foreground_window_region() -> dict | None:
