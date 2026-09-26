@@ -1,6 +1,6 @@
 # Leitor de tela
 
-Aperta um atalho, tira um print da janela em foco, extrai o texto com OCR (OpenAI `gpt-5-nano`) e lê em voz alta (edge-tts).
+Aperta um atalho, tira um print da janela em foco, extrai o texto com OCR (OpenAI `gpt-5-nano`), traduz para a língua escolhida (espanhol ou português) e lê em voz alta (edge-tts).
 
 Funciona no Windows e no macOS. Dependências gerenciadas com [uv](https://docs.astral.sh/uv/).
 
@@ -33,9 +33,12 @@ Uso: deixe o app em primeiro plano e aperte **Control+Option+R**.
 | Control+Option+P | Ctrl+Alt+P | Pausa / continua a narração |
 | Control+Option+S | Ctrl+Alt+S | Para a narração |
 | Control+Option+L | Ctrl+Alt+L | Repete a última narração |
+| Control+Option+T | Ctrl+Alt+T | Troca a língua: espanhol / português |
 | Control+Option+Q | Ctrl+Alt+Q | Encerra |
 
-Cada leitura fica salva na pasta `narracoes`, numerada: `1.txt` (texto extraído) e `1.mp3` (áudio), depois `2.txt` e `2.mp3`, e assim por diante.
+O texto é sempre traduzido para a língua escolhida antes de narrar (se já estiver nela, volta igual). O programa abre em espanhol; o Terminal mostra a língua atual.
+
+Cada leitura fica salva na pasta `narracoes`, numerada: `1.txt` (texto extraído), `1.es.txt` ou `1.pt.txt` (texto narrado) e `1.mp3` (áudio), depois `2.*`, e assim por diante.
 Para ouvir uma antiga, é só dar dois cliques no mp3. Para recomeçar do 1, apague os arquivos da pasta.
 O Terminal mostra cada etapa (captura, texto extraído, fala) e os erros. Se faltar permissão, avisa ao abrir e abre a tela certa dos Ajustes.
 
@@ -53,4 +56,4 @@ Atalhos: veja a tabela acima (Ctrl+Alt no lugar de Control+Option).
 
 ## Configuração
 
-Tudo opcional, no `.env` (veja `.env.example`): modelo do OCR, voz (padrão: espanhol, `es-ES-ElviraNeural`), velocidade, atalhos, pasta das narrações, narração automática, modo de captura (`window` ou `monitor`) e pastas de debug para salvar os prints e textos extraídos.
+Tudo opcional, no `.env` (veja `.env.example`): modelo do OCR, língua inicial, vozes de cada língua, velocidade, atalhos, pasta das narrações, narração automática, modo de captura (`window` ou `monitor`) e pastas de debug para salvar os prints e textos extraídos.
