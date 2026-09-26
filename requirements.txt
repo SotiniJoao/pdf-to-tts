@@ -1,0 +1,7 @@
+edge-tts
+openai
+mss
+pynput
+python-dotenv
+pyobjc-framework-Quartz; sys_platform == "darwin"
+pyobjc-framework-Cocoa; sys_platform == "darwin"
