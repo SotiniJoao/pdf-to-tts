@@ -25,9 +25,11 @@ No Mac:
 
    Depois de liberar, feche o Terminal e abra o `Iniciar.command` de novo.
 
-Uso: deixe o app em primeiro plano e aperte **Ctrl+Option+R**. **Ctrl+Option+Q** encerra.
+Uso: deixe o app em primeiro plano e aperte **Control+Option+R**. **Control+Option+Q** encerra.
+O Terminal mostra cada etapa (captura, texto extraído, fala) e os erros. Se faltar permissão, avisa ao abrir e abre a tela certa dos Ajustes.
 
-Atualizar: descompacte o zip novo por cima da pasta antiga. O `.env` continua lá e o `Iniciar.command` instala o que mudou.
+Atualizar: descompacte o zip novo, abra a pasta nova, selecione tudo (Cmd+A), arraste para dentro da pasta antiga e escolha **Substituir**.
+Não substitua a pasta inteira: a chave (`.env`) fica escondida na pasta antiga e se perderia. O `Iniciar.command` instala o que mudou.
 
 ## Windows
 

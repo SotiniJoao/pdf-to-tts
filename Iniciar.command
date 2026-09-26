@@ -25,5 +25,5 @@ fi
 echo "Preparando (na primeira vez baixa o Python e as dependências, leva uns minutos)..."
 "$UV" sync --locked --quiet || fail "Falhou a instalação das dependências."
 
-echo "Rodando. Ctrl+Option+R lê a janela em foco, Ctrl+Option+Q encerra."
+echo "Iniciando..."
 "$UV" run --locked screen_reader.py

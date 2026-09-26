@@ -31,29 +31,72 @@ QUIT_HOTKEY = os.getenv("QUIT_HOTKEY", "<ctrl>+<alt>+q")
 
 _busy = threading.Lock()
 
-DEBUG_TEXTS_DIR = os.getenv("DEBUG_TEXTS_DIR", False)
-debug = True if DEBUG_TEXTS_DIR else False
+
+def _describe_hotkey(hotkey: str) -> str:
+    """'<ctrl>+<alt>+r' -> 'Ctrl+Alt+R' (no Mac: 'Control+Option+R')."""
+    names = {"<ctrl>": "Ctrl", "<alt>": "Alt", "<shift>": "Shift", "<cmd>": "Win"}
+    if sys.platform == "darwin":
+        names.update({"<ctrl>": "Control", "<alt>": "Option", "<cmd>": "Cmd"})
+    return "+".join(names.get(part, part.upper()) for part in hotkey.split("+"))
+
+DEBUG_TEXTS_DIR = os.getenv("DEBUG_TEXTS_DIR", "")  # se definido, salva cada texto extraído nessa pasta
+
+
+def _save_debug_text(text: str) -> Path:
+    folder = Path(DEBUG_TEXTS_DIR)
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / f"debug_text_{hex(random.randint(0, 16**8))}.txt"
+    path.write_text(text, encoding="utf-8")
+    return path
+
+
 def read_screen() -> None:
     if not _busy.acquire(blocking=False):
-        if debug:
-            print("Ainda processando a leitura anterior, ignorando.")
+        print("Ainda processando a leitura anterior, ignorando.")
         return
     try:
+        print("Atalho recebido. Capturando a janela...")
         png = capture.capture()
+        print("Extraindo o texto...")
         text = ocr.extract_text(png)
         if not text:
-            if debug:
-                print("Nenhum texto encontrado.")
+            print("Nenhum texto encontrado.")
             return
-        if debug:
-            open(f"{os.path.join(DEBUG_TEXTS_DIR, f'debug_text_{hex(random.randint(0, 16**8))}.txt')}", "w", encoding="utf-8").write(text)
-            print(f"Texto extraído e salvo em arquivo de debug: {text}")
+        print(f"--- Texto extraído ---\n{text}\n----------------------")
+        if DEBUG_TEXTS_DIR:
+            print(f"Texto salvo em: {_save_debug_text(text).resolve()}")
+        print("Falando...")
         tts.speak(text)
+        print("Pronto. Aguardando o atalho.")
     except Exception as e:
-        if debug:
-            print(f"Erro: {e}")
+        print(f"Erro: {type(e).__name__}: {e}")
     finally:
         _busy.release()
+
+
+def _open_macos_settings(pane: str) -> None:
+    import subprocess
+
+    subprocess.run(["open", f"x-apple.systempreferences:com.apple.preference.security?{pane}"], check=False)
+
+
+def check_macos_permissions() -> None:
+    """Avisa (e abre a tela certa dos Ajustes) quando falta permissão para o Terminal."""
+    import HIServices
+    import Quartz
+
+    missing = False
+    if not Quartz.CGPreflightScreenCaptureAccess():
+        missing = True
+        print("FALTA PERMISSÃO: Gravação de Tela. Sem ela o print sai só com o papel de parede.")
+        Quartz.CGRequestScreenCaptureAccess()  # faz o Terminal aparecer na lista
+        _open_macos_settings("Privacy_ScreenCapture")
+    if not HIServices.AXIsProcessTrusted():
+        missing = True
+        print("FALTA PERMISSÃO: Acessibilidade. Sem ela o atalho de teclado não funciona.")
+        _open_macos_settings("Privacy_Accessibility")
+    if missing:
+        print("Ative o Terminal nas telas que abriram, feche o Terminal (Cmd+Q) e abra de novo.")
 
 
 def main() -> None:
@@ -67,9 +110,14 @@ def main() -> None:
         threading.Thread(target=read_screen, daemon=True).start()
 
     def on_quit() -> None:
+        print("Encerrando.")
         listener.stop()
 
+    if sys.platform == "darwin":
+        check_macos_permissions()
+
     listener = keyboard.GlobalHotKeys({READ_HOTKEY: on_read, QUIT_HOTKEY: on_quit})
+    print(f"Pronto. {_describe_hotkey(READ_HOTKEY)} lê a janela em foco, {_describe_hotkey(QUIT_HOTKEY)} encerra.")
     listener.start()
     listener.join()
 
